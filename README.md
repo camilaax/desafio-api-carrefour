@@ -59,14 +59,18 @@ A collection cobre os endpoints de usuários e login da API (ServeRest), com aut
 | 08 | GET /usuarios/:id | Id inexistente (16 caracteres válidos). Esperado 400 e mensagem de não encontrado. |
 | 09 | PUT /usuarios/:id | Atualização do usuário criado. Payload válido. Esperado 200 e mensagem de sucesso. |
 | 10 | PUT /usuarios/:id | Body vazio. Esperado 400. |
-| 11 | DELETE /usuarios/:id | Sem header Authorization. Esperado 401 ou 403 (API deve exigir token). |
-| 12 | DELETE /usuarios/:id | Exclusão do usuário criado, com token. Esperado 200 ou 204. |
-| 13 | DELETE /usuarios/:id | Id inexistente com token. Comportamento aceito conforme documentação da API. |
-| 14 | GET /usuarios/:id | Busca do id já excluído no passo 12. Esperado 400/404 e mensagem de não encontrado. |
+| 11 | DELETE /usuarios/:id | Sem token. Esperado 401 ou 403. |
+| 12 | GET /usuarios | Sem token. Esperado 401 ou 403. |
+| 13 | GET /usuarios/:id | Sem token. Esperado 401 ou 403. |
+| 14 | POST /usuarios | Sem token (criação de usuário comum). Esperado 401 ou 403. |
+| 15 | PUT /usuarios/:id | Sem token. Esperado 401 ou 403. |
+| 16 | DELETE /usuarios/:id | Exclusão do usuário criado, com token. Esperado 200 ou 204. |
+| 17 | DELETE /usuarios/:id | Id inexistente com token. Comportamento aceito conforme documentação da API. |
+| 18 | GET /usuarios/:id | Busca do id já excluído no passo 16. Esperado 400/404 e mensagem de não encontrado. |
 
 Cada requisição da collection verifica se a resposta da API chegou em até **3 segundos**; se passar disso, o teste falha. Entre uma requisição e outra há uma pausa de **150 ms** para não estourar o limite da API (100 requisições por minuto).
 
-**Sobre o teste 11 (DELETE sem token):** o requisito do desafio é que a autenticação seja via JWT. O teste valida que, ao chamar DELETE sem token, a API retorne 401 ou 403. Se a API em uso retornar 200 nesse cenário, o teste falha, indicando que o endpoint não está exigindo autenticação como esperado.
+**Sobre os testes sem token (11 a 15):** o requisito do desafio é que a autenticação seja via JWT. Os testes 11 a 15 validam que DELETE, GET (lista e por id), POST (criação de usuário comum) e PUT, quando chamados sem o header Authorization, retornem 401 ou 403. Se a API retornar 200 ou outro sucesso nesses cenários, o teste falha, indicando que o endpoint não está exigindo autenticação como esperado.
 
 ## CI
 
@@ -77,7 +81,7 @@ O workflow em `.github/workflows/ci.yml` roda em todo push e em pull requests: i
 ```
 desafio-api-carrefour/
   postman/
-    Carrefour-API.postman_collection.json   # collection com os 14 requests
+    Carrefour-API.postman_collection.json   # collection com os 18 requests
     Carrefour-API.postman_environment.json  # baseUrl da API
   .github/workflows/
     ci.yml                                  # pipeline de testes

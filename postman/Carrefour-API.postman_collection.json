@@ -637,7 +637,173 @@
       }
     },
     {
-      "name": "12 - DELETE /usuarios/{id} existente",
+      "name": "12 - GET /usuarios sem token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('GET /usuarios sem token deve retornar 401 ou 403', function () {",
+              "  pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+              "});",
+              "",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch (e) {}",
+              "",
+              "pm.test('Resposta de nao autorizado', function () {",
+              "  const rawMessage = json.message || json.id || pm.response.text();",
+              "  pm.expect(rawMessage).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "pm.test('Tempo de resposta aceitavel', function () {",
+              "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios",
+          "host": ["{{baseUrl}}"],
+          "path": ["usuarios"]
+        }
+      }
+    },
+    {
+      "name": "13 - GET /usuarios/{id} sem token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('GET /usuarios/:id sem token deve retornar 401 ou 403', function () {",
+              "  pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+              "});",
+              "",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch (e) {}",
+              "",
+              "pm.test('Resposta de nao autorizado', function () {",
+              "  const rawMessage = json.message || json.id || pm.response.text();",
+              "  pm.expect(rawMessage).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "pm.test('Tempo de resposta aceitavel', function () {",
+              "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/{{nonexistentUserId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["usuarios", "{{nonexistentUserId}}"]
+        }
+      }
+    },
+    {
+      "name": "14 - POST /usuarios sem token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('POST /usuarios sem token deve retornar 401 ou 403', function () {",
+              "  pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+              "});",
+              "",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch (e) {}",
+              "",
+              "pm.test('Resposta de nao autorizado', function () {",
+              "  const rawMessage = json.message || json.id || pm.response.text();",
+              "  pm.expect(rawMessage).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "pm.test('Tempo de resposta aceitavel', function () {",
+              "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Usuario sem token\",\n  \"email\": \"semtoken@qa.com\",\n  \"password\": \"Senha@123\",\n  \"administrador\": \"false\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/usuarios",
+          "host": ["{{baseUrl}}"],
+          "path": ["usuarios"]
+        }
+      }
+    },
+    {
+      "name": "15 - PUT /usuarios/{id} sem token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('PUT /usuarios/:id sem token deve retornar 401 ou 403', function () {",
+              "  pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+              "});",
+              "",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch (e) {}",
+              "",
+              "pm.test('Resposta de nao autorizado', function () {",
+              "  const rawMessage = json.message || json.id || pm.response.text();",
+              "  pm.expect(rawMessage).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "pm.test('Tempo de resposta aceitavel', function () {",
+              "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"nome\": \"Teste\"}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/{{nonexistentUserId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["usuarios", "{{nonexistentUserId}}"]
+        }
+      }
+    },
+    {
+      "name": "16 - DELETE /usuarios/{id} existente",
       "event": [
         {
           "listen": "test",
@@ -684,7 +850,7 @@
       }
     },
     {
-      "name": "13 - DELETE /usuarios/{id} inexistente",
+      "name": "17 - DELETE /usuarios/{id} inexistente",
       "event": [
         {
           "listen": "test",
@@ -730,7 +896,7 @@
       }
     },
     {
-      "name": "14 - GET /usuarios/{id} apos exclusao",
+      "name": "18 - GET /usuarios/{id} apos exclusao",
       "event": [
         {
           "listen": "test",
