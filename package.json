@@ -1,0 +1,17 @@
+{
+  "name": "desafio-api-carrefour",
+  "version": "1.0.0",
+  "description": "Automacao de testes de API para desafio tecnico",
+  "scripts": {
+    "test": "npm run test:ci",
+    "test:ci": "mkdir -p reports && newman run postman/Carrefour-API.postman_collection.json -e postman/Carrefour-API.postman_environment.json --delay-request 150 -r cli,junit,htmlextra --reporter-junit-export reports/newman-results.xml --reporter-htmlextra-export reports/newman-report.html"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "newman": "^6.2.2",
+    "newman-reporter-htmlextra": "^1.23.1"
+  }
+}

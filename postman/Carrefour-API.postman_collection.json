@@ -1,0 +1,834 @@
+{
+  "info": {
+    "_postman_id": "b8c6d7ef-74f6-4eb8-9d7e-7dd2ce4f1c0a",
+    "name": "Carrefour API Challenge",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('runId')) {",
+          "  pm.collectionVariables.set('runId', Date.now().toString());",
+          "}",
+          "",
+          "if (!pm.collectionVariables.get('nonexistentUserId')) {",
+          "  pm.collectionVariables.set('nonexistentUserId', '1234567890abcdef');",
+          "}",
+          "",
+          "const jwtToken = pm.collectionVariables.get('jwtToken');",
+          "if (jwtToken) {",
+          "  pm.collectionVariables.set('authHeader', `Bearer ${jwtToken}`);",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Criar usuario admin para autenticacao",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const runId = pm.collectionVariables.get('runId');",
+              "const adminEmail = `admin.${runId}@qa.com`;",
+              "pm.collectionVariables.set('adminEmail', adminEmail);",
+              "pm.collectionVariables.set('adminPassword', 'Teste@123');",
+              "pm.collectionVariables.set('adminNome', `Admin ${runId}`);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status de criacao valido', function () {",
+              "  pm.expect([201, 400]).to.include(pm.response.code);",
+              "});",
+              "",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch (e) {}",
+              "",
+              "pm.test('Resposta possui mensagem', function () {",
+              "  pm.expect(json).to.have.property('message');",
+              "  pm.expect(json.message).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "pm.test('Tempo de resposta aceitavel', function () {",
+              "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"{{adminNome}}\",\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\",\n  \"administrador\": \"true\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/usuarios",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios"
+          ]
+        }
+      }
+    },
+    {
+      "name": "02 - Login e captura de token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 no login', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "const tokenOrBearer = json.authorization || json.token;",
+              "",
+              "pm.test('Resposta contem token', function () {",
+              "  pm.expect(tokenOrBearer).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "const normalized = tokenOrBearer.toLowerCase().startsWith('bearer ')",
+              "  ? tokenOrBearer",
+              "  : `Bearer ${tokenOrBearer}`;",
+              "pm.collectionVariables.set('authHeader', normalized);",
+              "pm.collectionVariables.set('jwtToken', normalized.replace(/^Bearer\\s+/i, ''));",
+              "",
+              "pm.test('Tempo de resposta aceitavel', function () {",
+              "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "login"
+          ]
+        }
+      }
+    },
+    {
+      "name": "03 - GET /usuarios com token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 na listagem', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "",
+              "pm.test('Estrutura da resposta de listagem', function () {",
+              "  pm.expect(json).to.have.property('quantidade');",
+              "  pm.expect(json).to.have.property('usuarios');",
+              "  pm.expect(json.usuarios).to.be.an('array');",
+              "});",
+              "",
+              "pm.test('Tempo de resposta aceitavel', function () {",
+              "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{authHeader}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios"
+          ]
+        }
+      }
+    },
+    {
+      "name": "04 - POST /usuarios cria usuario comum",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const runId = pm.collectionVariables.get('runId');",
+              "const userEmail = `usuario.${runId}@qa.com`;",
+              "pm.collectionVariables.set('userEmail', userEmail);",
+              "pm.collectionVariables.set('userPassword', 'Senha@123');",
+              "pm.collectionVariables.set('userNome', `Usuario ${runId}`);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201 na criacao', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('createdUserId', json._id);",
+              "",
+              "pm.test('Resposta contem id criado', function () {",
+              "  pm.expect(json).to.have.property('_id');",
+              "  pm.expect(json._id).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "pm.test('Mensagem de sucesso na criacao', function () {",
+              "  pm.expect(json.message).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "pm.test('Tempo de resposta aceitavel', function () {",
+              "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{authHeader}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"{{userNome}}\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"administrador\": \"false\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/usuarios",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios"
+          ]
+        }
+      }
+    },
+    {
+      "name": "05 - POST /usuarios valida email duplicado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status de duplicidade', function () {",
+              "  pm.expect(pm.response.code).to.equal(400);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "",
+              "pm.test('Resposta informa duplicidade', function () {",
+              "  pm.expect(json).to.have.property('message');",
+              "  const msg = json.message.toLowerCase();",
+              "  pm.expect(msg.includes('email') || msg.includes('usado') || msg.includes('cadastrado')).to.equal(true);",
+              "});",
+              "",
+              "pm.test('Tempo de resposta aceitavel', function () {",
+              "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{authHeader}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"{{userNome}}\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"administrador\": \"false\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/usuarios",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios"
+          ]
+        }
+      }
+    },
+    {
+      "name": "06 - POST /usuarios valida campos obrigatorios",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400 em payload invalido', function () {",
+              "  pm.response.to.have.status(400);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "",
+              "pm.test('Retorna erros de validacao', function () {",
+              "  pm.expect(json).to.be.an('object');",
+              "  pm.expect(Object.keys(json).length).to.be.greaterThan(0);",
+              "});",
+              "",
+              "pm.test('Inclui ao menos um campo obrigatorio', function () {",
+              "  const keys = Object.keys(json);",
+              "  const expected = ['nome', 'email', 'password', 'administrador'];",
+              "  pm.expect(keys.some((k) => expected.includes(k))).to.equal(true);",
+              "});",
+              "",
+              "pm.test('Tempo de resposta aceitavel', function () {",
+              "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{authHeader}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/usuarios",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios"
+          ]
+        }
+      }
+    },
+    {
+      "name": "07 - GET /usuarios/{id} usuario existente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ao consultar por id existente', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "const expectedId = pm.collectionVariables.get('createdUserId');",
+              "",
+              "pm.test('Retorna id correto', function () {",
+              "  pm.expect(json._id).to.equal(expectedId);",
+              "});",
+              "",
+              "pm.test('Retorna campos principais', function () {",
+              "  pm.expect(json).to.have.property('nome');",
+              "  pm.expect(json).to.have.property('email');",
+              "  pm.expect(json).to.have.property('password');",
+              "  pm.expect(json).to.have.property('administrador');",
+              "});",
+              "",
+              "pm.test('Tempo de resposta aceitavel', function () {",
+              "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{authHeader}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/{{createdUserId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{createdUserId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "08 - GET /usuarios/{id} inexistente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status para id inexistente', function () {",
+              "  pm.expect([400, 404]).to.include(pm.response.code);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "",
+              "pm.test('Mensagem de nao encontrado', function () {",
+              "  const msg = (json.message || json.id || '').toString();",
+              "  const normalized = msg.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');",
+              "  pm.expect(normalized).to.include('nao');",
+              "});",
+              "",
+              "pm.test('Tempo de resposta aceitavel', function () {",
+              "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{authHeader}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/{{nonexistentUserId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{nonexistentUserId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "09 - PUT /usuarios/{id} atualizacao valida",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const runId = pm.collectionVariables.get('runId');",
+              "pm.collectionVariables.set('updatedUserNome', `Usuario Atualizado ${runId}`);",
+              "pm.collectionVariables.set('updatedUserEmail', `usuario.atualizado.${runId}@qa.com`);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status de atualizacao valido', function () {",
+              "  pm.expect([200, 201]).to.include(pm.response.code);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "",
+              "pm.test('Mensagem de sucesso na atualizacao', function () {",
+              "  pm.expect(json).to.have.property('message');",
+              "  pm.expect(json.message).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "pm.test('Tempo de resposta aceitavel', function () {",
+              "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{authHeader}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"{{updatedUserNome}}\",\n  \"email\": \"{{updatedUserEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"administrador\": \"false\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/{{createdUserId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{createdUserId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "10 - PUT /usuarios/{id} payload invalido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400 em payload invalido', function () {",
+              "  pm.response.to.have.status(400);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "",
+              "pm.test('Retorna objeto de validacao', function () {",
+              "  pm.expect(json).to.be.an('object');",
+              "  pm.expect(Object.keys(json).length).to.be.greaterThan(0);",
+              "});",
+              "",
+              "pm.test('Tempo de resposta aceitavel', function () {",
+              "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{authHeader}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/{{createdUserId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{createdUserId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "11 - DELETE /usuarios/{id} sem token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('DELETE sem token deve retornar 401 ou 403', function () {",
+              "  pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+              "});",
+              "",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch (e) {}",
+              "",
+              "pm.test('Resposta de nao autorizado', function () {",
+              "  const rawMessage = json.message || json.id || pm.response.text();",
+              "  pm.expect(rawMessage).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "pm.test('Tempo de resposta aceitavel', function () {",
+              "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/{{nonexistentUserId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{nonexistentUserId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "12 - DELETE /usuarios/{id} existente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status de exclusao valida', function () {",
+              "  pm.expect([200, 204]).to.include(pm.response.code);",
+              "});",
+              "",
+              "if (pm.response.code !== 204) {",
+              "  const json = pm.response.json();",
+              "  pm.test('Mensagem de exclusao presente', function () {",
+              "    pm.expect(json).to.have.property('message');",
+              "    pm.expect(json.message).to.be.a('string').and.not.empty;",
+              "  });",
+              "}",
+              "",
+              "pm.test('Tempo de resposta aceitavel', function () {",
+              "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{authHeader}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/{{createdUserId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{createdUserId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "13 - DELETE /usuarios/{id} inexistente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status de exclusao de inexistente', function () {",
+              "  pm.expect([200, 400, 404]).to.include(pm.response.code);",
+              "});",
+              "",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch (e) {}",
+              "",
+              "pm.test('Resposta sem erro de formato', function () {",
+              "  pm.expect(typeof json).to.be.oneOf(['object', 'string']);",
+              "});",
+              "",
+              "pm.test('Tempo de resposta aceitavel', function () {",
+              "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{authHeader}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/{{nonexistentUserId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{nonexistentUserId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "14 - GET /usuarios/{id} apos exclusao",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status apos exclusao', function () {",
+              "  pm.expect([400, 404]).to.include(pm.response.code);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "",
+              "pm.test('Mensagem de nao encontrado apos exclusao', function () {",
+              "  const msg = (json.message || json.id || '').toString();",
+              "  const normalized = msg.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');",
+              "  pm.expect(normalized).to.include('nao');",
+              "});",
+              "",
+              "pm.test('Tempo de resposta aceitavel', function () {",
+              "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{authHeader}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/{{createdUserId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{createdUserId}}"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "runId",
+      "value": ""
+    },
+    {
+      "key": "jwtToken",
+      "value": ""
+    },
+    {
+      "key": "authHeader",
+      "value": ""
+    },
+    {
+      "key": "createdUserId",
+      "value": ""
+    },
+    {
+      "key": "nonexistentUserId",
+      "value": "1234567890abcdef"
+    },
+    {
+      "key": "adminEmail",
+      "value": ""
+    },
+    {
+      "key": "adminPassword",
+      "value": "Teste@123"
+    },
+    {
+      "key": "adminNome",
+      "value": ""
+    },
+    {
+      "key": "userEmail",
+      "value": ""
+    },
+    {
+      "key": "userPassword",
+      "value": "Senha@123"
+    },
+    {
+      "key": "userNome",
+      "value": ""
+    },
+    {
+      "key": "updatedUserNome",
+      "value": ""
+    },
+    {
+      "key": "updatedUserEmail",
+      "value": ""
+    }
+  ]
+}
